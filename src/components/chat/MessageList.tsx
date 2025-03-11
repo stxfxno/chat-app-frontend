@@ -5,6 +5,13 @@ import { es } from 'date-fns/locale';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../context/ThemeContext';
+import { Contact } from '../../types';
+
+// Extender la interfaz Contact para incluir los nuevos campos
+interface ExtendedContact extends Contact {
+  last_message?: string;
+  last_message_time?: string;
+}
 
 const MessageList = () => {
   const { messages, activeContact, loadMessages, isLoading, isInitialLoad, activeConversationId, onlineUsers } = useChatStore();
@@ -12,6 +19,9 @@ const MessageList = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { darkMode } = useTheme();
   const [previousContactId, setPreviousContactId] = useState<string | null>(null);
+  
+  // Convertir activeContact al tipo extendido
+  const activeContactExtended = activeContact as ExtendedContact | null;
   
   // Determine if contact is online
   const isContactOnline = activeContact ? onlineUsers[activeContact.id] || false : false;
@@ -116,6 +126,15 @@ const MessageList = () => {
           } flex items-center`}>
             <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
             En línea
+          </span>
+        ) : activeContactExtended?.last_message_time ? (
+          <span className={`text-xs px-2 py-1 rounded-full ${
+            darkMode 
+              ? 'bg-gray-700 text-gray-300' 
+              : 'bg-gray-100 text-gray-800'
+          } flex items-center`}>
+            <span className="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
+            {`Último mensaje ${formatDistanceToNow(new Date(activeContactExtended.last_message_time), { addSuffix: true, locale: es })}`}
           </span>
         ) : activeContact.last_seen ? (
           <span className={`text-xs px-2 py-1 rounded-full ${

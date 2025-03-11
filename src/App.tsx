@@ -2,10 +2,11 @@ import { useEffect, JSX } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useChatStore } from './store/chatStore';
-import { User as SupabaseUser } from '@supabase/supabase-js'; // Añadir esta importación
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage.tsx';
 import ChatPage from './pages/ChatPage.tsx';
+import ProfilePage from './pages/ProfilePage.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 import { MessageSubscriptionProvider } from './context/MessageSubscriptionProvider.tsx';
 import { supabase } from './lib/supabase';
@@ -62,6 +63,11 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } />
             <Route path="/" element={
               <ProtectedRoute>
                 <ChatPage />

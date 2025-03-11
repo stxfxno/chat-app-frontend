@@ -1,13 +1,15 @@
-// src/pages/ChatPage.tsx
-import { useState, useEffect } from 'react';
+// Corrección para ChatPage.tsx para evitar que el modal de perfil se abra automáticamente en móvil
+
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import ContactList from '../components/chat/ContactList';
 import MessageList from '../components/chat/MessageList';
 import MessageInput from '../components/chat/MessageInput';
+import ProfileButton from '../components/ui/ProfileButton';
 import { useChatStore } from '../store/chatStore';
-import { LogOut, ArrowLeft, Users, Settings } from 'lucide-react';
+import { LogOut, ArrowLeft, Users} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const ChatPage = () => {
@@ -18,17 +20,26 @@ const ChatPage = () => {
   const [showContacts, setShowContacts] = useState(!isMobile || !activeContact);
   const { darkMode, toggleDarkMode } = useTheme();
   
+  // Ref para evitar efectos no deseados al montar el componente
+  const initialRenderRef = useRef(true);
+  
   // Cuando cambia de móvil a desktop, mostrar ambos paneles
   useEffect(() => {
-    if (!isMobile) {
-      setShowContacts(true);
+    if (!initialRenderRef.current) {
+      if (!isMobile) {
+        setShowContacts(true);
+      }
+    } else {
+      initialRenderRef.current = false;
     }
   }, [isMobile]);
   
   // En móvil, cuando se selecciona un contacto, mostrar la conversación
   useEffect(() => {
-    if (isMobile && activeContact) {
-      setShowContacts(false);
+    if (!initialRenderRef.current) {
+      if (isMobile && activeContact) {
+        setShowContacts(false);
+      }
     }
   }, [activeContact, isMobile]);
   
@@ -66,6 +77,7 @@ const ChatPage = () => {
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Botón de tema */}
           <button
             onClick={toggleDarkMode}
             className="p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -82,12 +94,17 @@ const ChatPage = () => {
             )}
           </button>
           
+          {/* Botón de perfil */}
+          {user && <ProfileButton user={user} />}
+          
+          {/* Email del usuario (solo en desktop) */}
           <div className="hidden md:flex items-center px-3 py-1 rounded-full bg-white/10">
             <span className="text-sm max-w-[150px] truncate">
               {user?.email}
             </span>
           </div>
           
+          {/* Botón de cerrar sesión */}
           <button 
             onClick={handleSignOut}
             className="p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -98,19 +115,13 @@ const ChatPage = () => {
         </div>
       </header>
       
-      {/* Contenedor principal con posición relativa y altura fija */}
-      <div className="flex-1 relative overflow-hidden">
+      {/* Usando un enfoque de grid para la disposición de los paneles */}
+      <div className="flex-1 grid grid-cols-12 overflow-hidden">
         {/* Panel de contactos */}
         {(!isMobile || showContacts) && (
-          <div 
-            className={`${isMobile ? 'w-full' : 'w-1/3 md:w-2/5 lg:w-1/3'} absolute top-0 bottom-0 left-0 ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
-            } border-r z-10 bg-inherit`}
-            style={{
-              height: '100%',
-              maxHeight: '100%'
-            }}
-          >
+          <div className={`${isMobile ? 'col-span-12' : 'col-span-4 lg:col-span-3'} border-r ${
+            darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+          } overflow-hidden h-full z-10`}>
             <ContactList 
               onSelectContact={() => isMobile && setShowContacts(false)} 
             />
@@ -119,16 +130,14 @@ const ChatPage = () => {
         
         {/* Panel de mensajes */}
         {(!isMobile || !showContacts) && (
-          <div 
-            className={`${isMobile ? 'w-full' : 'w-2/3 md:w-3/5 lg:w-2/3 ml-[33.333%] lg:ml-1/3 md:ml-[40%]'} 
-              absolute top-0 bottom-0 ${isMobile || showContacts ? 'left-0' : 'left-[33.333%] md:left-[40%] lg:left-1/3'}
-              right-0 flex flex-col`}
-            style={{
-              height: '100%',
-              maxHeight: '100%'
-            }}
-          >
-            <div className="flex-1 overflow-hidden flex flex-col">
+          <div className={`${
+            isMobile 
+              ? 'col-span-12' 
+              : showContacts 
+                ? 'col-span-8 lg:col-span-9' 
+                : 'col-span-12'
+          } h-full`}>
+            <div className="h-full flex flex-col">
               <MessageList />
               {activeContact && <MessageInput />}
             </div>

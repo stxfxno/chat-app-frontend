@@ -55,16 +55,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   onlineUsers: {},
 
   setActiveContact: async (contact: Contact) => {
-    // First, clear existing messages and set the new active contact
+    // Primero, limpiar inmediatamente los mensajes y establecer el nuevo contacto activo
     set({ 
       activeContact: contact, 
-      messages: [], // Clear messages immediately when changing contacts
+      messages: [], // Limpiar mensajes inmediatamente
       isLoading: true,
-      isInitialLoad: true // Marcar como carga inicial al cambiar de contacto
+      isInitialLoad: true, // Marcar como carga inicial al cambiar de contacto
+      activeConversationId: null // Importante: anular la conversación activa para evitar cargas incorrectas
     });
     
     try {
-      // 1. Obtain current user
+      // 1. Obtener el usuario actual
       const currentUser = get().currentUser;
       if (!currentUser) {
         console.error("No current user available");
@@ -72,30 +73,110 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return;
       }
       
-      // 2. Get or create a conversation between users
-      try {
-        const response = await axios.get(`${API_URL}/conversations/between/${currentUser.id}/${contact.id}`);
-        
-        // Extract conversation ID from response
-        const conversationData = response.data.data || response.data;
-        const conversationId = conversationData.id;
-        
-        console.log("Conversation obtained/created:", conversationId);
-        
-        // 3. Set active conversation
-        set({ activeConversationId: conversationId });
-        
-        // 4. Load initial messages for this conversation
-        if (conversationId) {
-          await get().loadMessages(conversationId, true);
+      // 2. Obtener o crear conversación con una pequeña pausa para asegurar la transición visual limpia
+      setTimeout(async () => {
+        try {
+          const API_URL = import.meta.env.VITE_API_URL;
+          const response = await axios.get(`${API_URL}/conversations/between/${currentUser.id}/${contact.id}`);
+          
+          // Verificar que el contacto activo no haya cambiado durante la petición
+          if (get().activeContact?.id !== contact.id) {
+            console.log("Contact changed during conversation fetch, aborting");
+            return;
+          }
+          
+          // Extraer ID de conversación de la respuesta
+          const conversationData = response.data.data || response.data;
+          const conversationId = conversationData.id;
+          
+          console.log("Conversation obtained/created:", conversationId);
+          
+          // 3. Establecer conversación activa
+          set({ activeConversationId: conversationId });
+          
+          // 4. Cargar mensajes para esta conversación
+          if (conversationId) {
+            await get().loadMessages(conversationId, true);
+          }
+        } catch (error) {
+          console.error("Error getting/creating conversation:", error);
+          set({ isLoading: false, isInitialLoad: false });
         }
-      } catch (error) {
-        console.error("Error getting/creating conversation:", error);
-        set({ isLoading: false, isInitialLoad: false });
-      }
+      }, 50); // Pequeña pausa para asegurar que la UI se actualice primero
     } catch (error) {
       console.error("General error setting up conversation:", error);
       set({ isLoading: false, isInitialLoad: false });
+    }
+  },
+
+  loadContactsWithLastMessages: async () => {
+    set({ isLoading: true });
+    try {
+      // 1. Cargar la lista básica de contactos
+      const response = await axios.get(`${API_URL}/users`);
+      
+      const contactsArray = response.data.data || [];
+      
+      // Obtener el ID del usuario actual
+      const currentUser = get().currentUser;
+      let currentUserId: string | undefined = currentUser?.id;
+      
+      // Si no hay usuario actual en el store, intenta obtenerlo de la sesión
+      if (!currentUserId) {
+        const { data } = await supabase.auth.getSession();
+        currentUserId = data.session?.user?.id;
+      }
+      
+      // Filtrar el usuario actual de la lista de contactos
+      const filteredContacts = contactsArray.filter((contact: Contact) => contact.id !== currentUserId);
+      
+      // 2. Para cada contacto, obtener su última conversación con el usuario actual
+      const contactsWithLastMessages = await Promise.all(
+        filteredContacts.map(async (contact: Contact) => {
+          try {
+            // Buscar conversación entre usuarios
+            const conversationResponse = await axios.get(
+              `${API_URL}/conversations/between/${currentUserId}/${contact.id}`
+            );
+            
+            const conversationData = conversationResponse.data.data || conversationResponse.data;
+            const conversationId = conversationData.id;
+            
+            if (conversationId) {
+              // Obtener último mensaje de la conversación
+              const messagesResponse = await axios.get(
+                `${API_URL}/messages/conversation/${conversationId}?page=1&limit=1`
+              );
+              
+              const messagesData = messagesResponse.data?.data?.messages || [];
+              
+              if (messagesData.length > 0) {
+                const lastMessage = messagesData[0];
+                return {
+                  ...contact,
+                  last_message: lastMessage.content,
+                  last_message_time: lastMessage.created_at
+                };
+              }
+            }
+            
+            // Si no hay conversación o mensajes, devolver contacto sin cambios
+            return contact;
+          } catch (error) {
+            console.error(`Error getting last message for contact ${contact.id}:`, error);
+            return contact;
+          }
+        })
+      );
+      
+      // Actualizar el estado con los contactos enriquecidos
+      set({ 
+        contacts: contactsWithLastMessages, 
+        isLoading: false 
+      });
+    } catch (error) {
+      console.error('Error loading contacts with last messages:', error);
+      set({ contacts: [], isLoading: false });
     }
   },
   
@@ -268,6 +349,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
         content: content,
         image_url: imageUrl
       });
+
+      if (currentUser) {
+        supabase
+          .from('users')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', currentUser.id);
+      }
       
       // No necesitamos recargar mensajes, ya mostramos el optimista
       // Solo recargamos silenciosamente para actualizar el mensaje con su ID real
@@ -280,6 +368,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // En este caso, simplemente recargamos los mensajes para asegurar consistencia
       get().loadMessages(conversationId, false);
     }
+
+    
   },
 
   markMessagesAsRead: async () => {

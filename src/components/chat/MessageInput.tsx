@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { supabase } from '../../lib/supabase';
-import { Paperclip, Send, Image } from 'lucide-react';
+import { Send, Image } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const MessageInput = () => {
