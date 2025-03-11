@@ -1,26 +1,29 @@
-// src/hooks/useMessageSubscription.ts
-import { useEffect, useState } from 'react';
+// src/context/MessageSubscriptionProvider.tsx
+import React, { createContext, useContext, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
 
-export const useMessageSubscription = (contactId: string | null) => {
-  const [isSubscribed, setIsSubscribed] = useState(false);
+// Create context
+const MessageSubscriptionContext = createContext<null>(null);
+
+/**
+ * Provider component that handles all chat subscriptions in one place
+ */
+export const MessageSubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { activeConversationId } = useChatStore();
+  const { user } = useAuthStore();
   
   // Get store functions directly from the store
-  const loadMessagesFromStore = useChatStore.getState().loadMessages;
-  const updateUserStatusFromStore = useChatStore.getState().updateUserOnlineStatus;
+  const loadMessages = useChatStore.getState().loadMessages;
+  const updateUserOnlineStatus = useChatStore.getState().updateUserOnlineStatus;
   
-  // Subscription for messages
+  // Subscribe to messages for the active conversation
   useEffect(() => {
-    if (!contactId) return;
-    
-    // Get the conversation ID directly from the store
-    const activeConversationId = useChatStore.getState().activeConversationId;
     if (!activeConversationId) return;
     
     console.log("Setting up message subscription for conversation:", activeConversationId);
     
-    // Listen for new messages in the current conversation
     const channel = supabase.channel(`messages:${activeConversationId}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -29,31 +32,26 @@ export const useMessageSubscription = (contactId: string | null) => {
         filter: `conversation_id=eq.${activeConversationId}`,
       }, (payload) => {
         console.log("New message detected:", payload);
-        // Get the current conversation ID when a message arrives
-        // This ensures we're loading messages for the current conversation
+        // Get the current conversation ID to ensure we're still on the same conversation
         const currentConversationId = useChatStore.getState().activeConversationId;
         if (currentConversationId === activeConversationId) {
-          loadMessagesFromStore(activeConversationId);
+          loadMessages(activeConversationId);
         }
       })
-      .subscribe((status) => {
-        console.log("Message subscription status:", status);
-        setIsSubscribed(status === 'SUBSCRIBED');
-      });
+      .subscribe();
     
     return () => {
       console.log("Cleaning up message subscription");
       supabase.removeChannel(channel);
     };
-  }, [contactId]); // Only depend on contactId
+  }, [activeConversationId]);
   
-  // Subscription for presence (user online status)
+  // Setup presence subscription once, regardless of active contact
   useEffect(() => {
-    if (!contactId) return;
+    if (!user) return;
     
     console.log("Setting up presence subscription");
     
-    // Create a channel for presence
     const presenceChannel = supabase.channel('online-users')
       .on('presence', { event: 'sync' }, () => {
         // Get the current state of all online users
@@ -62,30 +60,24 @@ export const useMessageSubscription = (contactId: string | null) => {
         
         // Update the online status of users in our store
         for (const userId in state) {
-          updateUserStatusFromStore(userId, true);
+          updateUserOnlineStatus(userId, true);
         }
       })
       .on('presence', { event: 'join' }, ({ key }) => {
-        // A user has come online
         console.log('User joined:', key);
-        updateUserStatusFromStore(key, true);
+        updateUserOnlineStatus(key, true);
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
-        // A user has gone offline
         console.log('User left:', key);
-        updateUserStatusFromStore(key, false);
+        updateUserOnlineStatus(key, false);
       })
       .subscribe(async (status) => {
         if (status !== 'SUBSCRIBED') return;
         
-        // Track the current user as online
-        const { data } = await supabase.auth.getSession();
-        const currentUserId = data.session?.user?.id;
-        
-        if (currentUserId) {
-          // Current user is now tracked as online
+        if (user?.id) {
+          // Track the current user as online
           const trackStatus = await presenceChannel.track({
-            user_id: currentUserId,
+            user_id: user.id,
             online_at: new Date().toISOString(),
           });
           console.log("Tracking current user's online status:", trackStatus);
@@ -96,7 +88,19 @@ export const useMessageSubscription = (contactId: string | null) => {
       console.log("Cleaning up presence subscription");
       supabase.removeChannel(presenceChannel);
     };
-  }, [contactId]); // Only depend on contactId
+  }, [user?.id]);
   
-  return { isSubscribed };
+  return (
+    <MessageSubscriptionContext.Provider value={null}>
+      {children}
+    </MessageSubscriptionContext.Provider>
+  );
+};
+
+// Custom hook for using the context
+export const useMessageSubscription = () => {
+  useContext(MessageSubscriptionContext);
+  // We don't actually need to return anything from the context
+  // The provider handles all the subscriptions
+  return null;
 };

@@ -98,21 +98,40 @@ const ChatPage = () => {
         </div>
       </header>
       
-      <div className="flex-1 flex overflow-hidden">
+      {/* Contenedor principal con posición relativa y altura fija */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Panel de contactos */}
         {(!isMobile || showContacts) && (
-          <div className={`${isMobile ? 'w-full' : 'w-1/3 md:w-2/5 lg:w-1/3'} ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
-          } border-r`}>
+          <div 
+            className={`${isMobile ? 'w-full' : 'w-1/3 md:w-2/5 lg:w-1/3'} absolute top-0 bottom-0 left-0 ${
+              darkMode ? 'border-gray-700' : 'border-gray-200'
+            } border-r z-10 bg-inherit`}
+            style={{
+              height: '100%',
+              maxHeight: '100%'
+            }}
+          >
             <ContactList 
               onSelectContact={() => isMobile && setShowContacts(false)} 
             />
           </div>
         )}
         
+        {/* Panel de mensajes */}
         {(!isMobile || !showContacts) && (
-          <div className={`${isMobile ? 'w-full' : 'w-2/3 md:w-3/5 lg:w-2/3'} flex flex-col`}>
-            <MessageList />
-            {activeContact && <MessageInput />}
+          <div 
+            className={`${isMobile ? 'w-full' : 'w-2/3 md:w-3/5 lg:w-2/3 ml-[33.333%] lg:ml-1/3 md:ml-[40%]'} 
+              absolute top-0 bottom-0 ${isMobile || showContacts ? 'left-0' : 'left-[33.333%] md:left-[40%] lg:left-1/3'}
+              right-0 flex flex-col`}
+            style={{
+              height: '100%',
+              maxHeight: '100%'
+            }}
+          >
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <MessageList />
+              {activeContact && <MessageInput />}
+            </div>
           </div>
         )}
       </div>

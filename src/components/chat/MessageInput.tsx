@@ -62,7 +62,7 @@ const MessageInput = () => {
   };
   
   return (
-    <div className={`px-4 py-3 border-t ${
+    <div className={`z-10 px-4 py-3 border-t shadow-sm ${
       darkMode 
         ? 'bg-gray-800 border-gray-700' 
         : 'bg-white border-gray-200'

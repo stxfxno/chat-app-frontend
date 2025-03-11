@@ -10,6 +10,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: {
-    enabled: true,
+    params: {
+      eventsPerSecond: 10
+    }
   }
 });

@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage.tsx';
 import ChatPage from './pages/ChatPage.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
+import { MessageSubscriptionProvider } from './context/MessageSubscriptionProvider.tsx';
 import { supabase } from './lib/supabase';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
@@ -56,18 +57,20 @@ function App() {
   
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <ChatPage />
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <MessageSubscriptionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </MessageSubscriptionProvider>
     </ThemeProvider>
   );
 }
