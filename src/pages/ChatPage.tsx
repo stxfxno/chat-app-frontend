@@ -1,5 +1,4 @@
-// Corrección para ChatPage.tsx para evitar que el modal de perfil se abra automáticamente en móvil
-
+// src/pages/ChatPage.tsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -8,6 +7,7 @@ import ContactList from '../components/chat/ContactList';
 import MessageList from '../components/chat/MessageList';
 import MessageInput from '../components/chat/MessageInput';
 import ProfileButton from '../components/ui/ProfileButton';
+import ThemeSelector from '../components/ui/ThemeSelector'; // Importamos el nuevo componente
 import { useChatStore } from '../store/chatStore';
 import { LogOut, ArrowLeft, Users} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -18,7 +18,7 @@ const ChatPage = () => {
   const { user, signOut } = useAuthStore();
   const { activeContact } = useChatStore();
   const [showContacts, setShowContacts] = useState(!isMobile || !activeContact);
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { darkMode, toggleDarkMode, themeColors } = useTheme(); // Obtener themeColors
   
   // Ref para evitar efectos no deseados al montar el componente
   const initialRenderRef = useRef(true);
@@ -56,8 +56,8 @@ const ChatPage = () => {
     }`}>
       <header className={`px-4 py-3 flex items-center justify-between shadow-md z-10 ${
         darkMode 
-          ? 'bg-gradient-to-r from-violet-900 to-indigo-900 text-white' 
-          : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+          ? 'bg-gradient-to-r from-gray-900 to-gray-800 text-white' 
+          : themeColors.gradient + ' text-white'
       }`}>
         <div className="flex items-center">
           {isMobile && activeContact && !showContacts && (
@@ -93,6 +93,9 @@ const ChatPage = () => {
               </svg>
             )}
           </button>
+          
+          {/* Selector de Temas de Color */}
+          <ThemeSelector />
           
           {/* Botón de perfil */}
           {user && <ProfileButton user={user} />}

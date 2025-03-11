@@ -17,7 +17,7 @@ const MessageList = () => {
   const { messages, activeContact, loadMessages, isLoading, isInitialLoad, activeConversationId, onlineUsers } = useChatStore();
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { darkMode } = useTheme();
+  const { darkMode, themeColors } = useTheme();
   const [previousContactId, setPreviousContactId] = useState<string | null>(null);
   
   // Convertir activeContact al tipo extendido
@@ -56,11 +56,11 @@ const MessageList = () => {
       }`}>
         <div className={`w-20 h-20 flex items-center justify-center rounded-full mb-4 ${
           darkMode 
-            ? 'bg-gradient-to-r from-violet-800/30 to-fuchsia-800/30' 
-            : 'bg-gradient-to-r from-indigo-100 to-purple-100'
+            ? 'bg-gradient-to-r from-gray-800/30 to-gray-700/30' 
+            : 'bg-gradient-to-r from-gray-100 to-gray-200'
         }`}>
           <svg xmlns="http://www.w3.org/2000/svg" className={`h-10 w-10 ${
-            darkMode ? 'text-violet-400' : 'text-indigo-500'
+            darkMode ? themeColors.secondary : themeColors.secondary
           }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -89,9 +89,7 @@ const MessageList = () => {
       } border-b shadow-sm`}>
         <div className="flex items-center">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${
-            darkMode 
-              ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600' 
-              : 'bg-gradient-to-r from-indigo-500 to-purple-600'
+            themeColors.gradient
           }`}>
             {activeContact.avatar_url ? (
               <img 
@@ -169,7 +167,7 @@ const MessageList = () => {
           {isLoading && isInitialLoad ? (
             <div className="flex justify-center items-center h-full">
               <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
-                darkMode ? 'border-violet-500' : 'border-indigo-500'
+                darkMode ? `border-${themeColors.secondary.split('-')[1]}` : `border-${themeColors.secondary.split('-')[1]}`
               }`}></div>
             </div>
           ) : messageArray.length === 0 ? (
@@ -180,7 +178,7 @@ const MessageList = () => {
                   : 'bg-white'
               }`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-8 w-8 ${
-                  darkMode ? 'text-violet-400' : 'text-indigo-500'
+                  darkMode ? themeColors.secondary : themeColors.secondary
                 }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -212,9 +210,7 @@ const MessageList = () => {
                     >
                       <div className={`max-w-[80%] px-4 py-3 rounded-xl shadow-sm ${
                         isOwn 
-                          ? darkMode 
-                            ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white' 
-                            : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' 
+                          ? `${themeColors.gradient} text-white` 
                           : darkMode 
                             ? 'bg-gray-800 text-gray-200' 
                             : 'bg-white text-gray-800'

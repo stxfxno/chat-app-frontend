@@ -1,7 +1,7 @@
 // src/pages/ProfilePage.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCircle, ArrowLeft, Save} from 'lucide-react';
+import { UserCircle, ArrowLeft, Save, Palette } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useTheme } from '../context/ThemeContext';
 
@@ -14,7 +14,7 @@ interface UpdateProfileDto {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuthStore();
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { darkMode, toggleDarkMode, colorScheme, setColorScheme, themeColors } = useTheme();
   
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
@@ -26,6 +26,35 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const themeSelectorRef = useRef<HTMLDivElement>(null);
+
+  // Opciones de temas disponibles
+  const colorOptions = [
+    { id: 'purple', name: 'Púrpura', color: darkMode ? 'bg-violet-600' : 'bg-indigo-600' },
+    { id: 'blue', name: 'Azul', color: darkMode ? 'bg-blue-600' : 'bg-blue-500' },
+    { id: 'green', name: 'Verde', color: darkMode ? 'bg-emerald-600' : 'bg-emerald-500' },
+    { id: 'amber', name: 'Ámbar', color: darkMode ? 'bg-amber-600' : 'bg-amber-500' },
+  ];
+
+  // Cerrar el selector de temas al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (themeSelectorRef.current && !themeSelectorRef.current.contains(event.target as Node)) {
+        setShowThemeSelector(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSelectTheme = (themeId: string) => {
+    setColorScheme(themeId as 'purple' | 'blue' | 'green' | 'amber');
+    setShowThemeSelector(false);
+  };
 
   // Redirigir si no hay usuario
   useEffect(() => {
@@ -95,8 +124,8 @@ const ProfilePage = () => {
       {/* Encabezado */}
       <header className={`px-4 py-3 flex items-center justify-between shadow-md z-10 ${
         darkMode 
-          ? 'bg-gradient-to-r from-violet-900 to-indigo-900 text-white' 
-          : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+          ? 'bg-gradient-to-r from-gray-900 to-gray-800 text-white' 
+          : themeColors.gradient + ' text-white'
       }`}>
         <div className="flex items-center">
           <button 
@@ -110,7 +139,7 @@ const ProfilePage = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Botón de tema */}
+          {/* Botón de tema claro/oscuro */}
           <button
             onClick={toggleDarkMode}
             className="p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -126,6 +155,63 @@ const ProfilePage = () => {
               </svg>
             )}
           </button>
+          
+          {/* Selector de color - NUEVO */}
+          <div className="relative" ref={themeSelectorRef}>
+            <button 
+              onClick={() => setShowThemeSelector(!showThemeSelector)}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              aria-label="Cambiar tema de color"
+              title="Cambiar tema de color"
+            >
+              <Palette size={20} className="text-white" />
+            </button>
+            
+            {showThemeSelector && (
+              <div 
+                className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg ${
+                  darkMode 
+                    ? 'bg-gray-800 border border-gray-700' 
+                    : 'bg-white border border-gray-200'
+                }`}
+                style={{ zIndex: 50 }}
+              >
+                <div className="py-1">
+                  <div className={`px-4 py-2 text-sm font-medium ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Tema de color
+                  </div>
+                  
+                  <div className="mt-1 px-2 space-y-1">
+                    {colorOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => handleSelectTheme(option.id)}
+                        className={`flex items-center w-full px-2 py-2 text-sm rounded-md ${
+                          colorScheme === option.id
+                            ? darkMode 
+                              ? 'bg-gray-700 text-white' 
+                              : 'bg-gray-100 text-gray-900'
+                            : darkMode 
+                              ? 'text-gray-300 hover:bg-gray-700' 
+                              : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className={`w-4 h-4 mr-2 rounded-full ${option.color}`}></span>
+                        {option.name}
+                        {colorScheme === option.id && (
+                          <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       
@@ -201,8 +287,8 @@ const ProfilePage = () => {
                 onChange={handleChange}
                 className={`w-full p-3 rounded-lg border ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent' 
-                    : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    ? `bg-gray-800 border-gray-700 text-white focus:ring-2 focus:${themeColors.ring} focus:border-transparent` 
+                    : `bg-white border-gray-300 text-gray-900 focus:ring-2 focus:${themeColors.ring} focus:border-transparent`
                 }`}
               />
             </div>
@@ -225,8 +311,8 @@ const ProfilePage = () => {
                 onChange={handleChange}
                 className={`w-full p-3 rounded-lg border ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent' 
-                    : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    ? `bg-gray-800 border-gray-700 text-white focus:ring-2 focus:${themeColors.ring} focus:border-transparent` 
+                    : `bg-white border-gray-300 text-gray-900 focus:ring-2 focus:${themeColors.ring} focus:border-transparent`
                 }`}
               />
             </div>
@@ -249,8 +335,8 @@ const ProfilePage = () => {
                 onChange={handleChange}
                 className={`w-full p-3 rounded-lg border ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent' 
-                    : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    ? `bg-gray-800 border-gray-700 text-white focus:ring-2 focus:${themeColors.ring} focus:border-transparent` 
+                    : `bg-white border-gray-300 text-gray-900 focus:ring-2 focus:${themeColors.ring} focus:border-transparent`
                 }`}
               />
             </div>
@@ -263,9 +349,7 @@ const ProfilePage = () => {
               type="submit"
               disabled={isLoading}
               className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-medium text-white transition-all duration-200 ${
-                darkMode 
-                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 focus:ring-offset-gray-800' 
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                `bg-gradient-to-r ${themeColors.primary} ${themeColors.hover} focus:ring-2 focus:ring-offset-2 focus:${themeColors.ring} ${darkMode ? 'focus:ring-offset-gray-800' : ''}`
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoading ? (

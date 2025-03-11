@@ -14,7 +14,8 @@ const RegisterPage = () => {
   const [phoneError, setPhoneError] = useState('');
 
   // Usa el contexto de tema en lugar de estado local
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { darkMode, toggleDarkMode, themeColors, colorScheme } = useTheme();
+
 
   const navigate = useNavigate();
   const signUp = useAuthStore(state => state.signUp);
@@ -90,7 +91,7 @@ const RegisterPage = () => {
         <div className={`w-full max-w-md p-4 sm:p-6 md:p-8 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-2xl ${darkMode ? 'border border-gray-700' : ''}`}>
           <div className="text-center">
             {/* Logo/Icono */}
-            <div className={`mx-auto h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center rounded-full ${darkMode ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600' : 'bg-gradient-to-r from-indigo-500 to-purple-600'} mb-4 sm:mb-6`}>
+            <div className={`mx-auto h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center rounded-full ${themeColors.gradient} mb-4 sm:mb-6`}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 sm:h-8 sm:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
@@ -153,7 +154,7 @@ const RegisterPage = () => {
                 </div>
               </div>
 
-              
+
 
               {/* Campo de Email */}
               <div>
@@ -268,9 +269,7 @@ const RegisterPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent rounded-lg shadow-sm text-xs sm:text-sm font-medium text-white transition-all duration-300 transform hover:translate-y-[-1px] disabled:opacity-70 disabled:cursor-not-allowed ${darkMode
-                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 focus:ring-offset-gray-800'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                className={`w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent rounded-lg shadow-sm text-xs sm:text-sm font-medium text-white transition-all duration-300 transform hover:translate-y-[-1px] disabled:opacity-70 disabled:cursor-not-allowed ${`bg-gradient-to-r ${themeColors.primary} ${themeColors.hover} focus:ring-2 focus:ring-offset-2 focus:${themeColors.ring} ${darkMode ? 'focus:ring-offset-gray-800' : ''}`
                   }`}
               >
                 {isLoading ? (
@@ -331,7 +330,7 @@ const RegisterPage = () => {
             {/* Footer con link de login */}
             <div className={`text-center text-xs sm:text-sm mt-4 sm:mt-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               ¿Ya tienes cuenta?{' '}
-              <Link to="/login" className={`font-medium ${darkMode ? 'text-violet-400 hover:text-violet-300' : 'text-indigo-600 hover:text-indigo-800'} transition-colors duration-300`}>
+              <Link to="/login" className={`font-medium ${themeColors.secondary} transition-colors duration-300`}>
                 Inicia sesión
               </Link>
             </div>

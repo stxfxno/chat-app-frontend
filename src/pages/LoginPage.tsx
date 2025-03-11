@@ -8,18 +8,18 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Usa el contexto de tema en lugar de estado local
-  const { darkMode, toggleDarkMode } = useTheme();
-  
+  const { darkMode, toggleDarkMode, themeColors, colorScheme } = useTheme();
+
   const navigate = useNavigate();
   const signIn = useAuthStore(state => state.signIn);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
       await signIn(email, password);
       navigate('/');
@@ -33,17 +33,16 @@ const LoginPage = () => {
       setIsLoading(false);
     }
   };
-  
+
   return (
-    <div className={`min-h-screen flex flex-col justify-between transition-colors duration-300 ${
-      darkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900' 
-        : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50'
-    }`}>
+    <div className={`min-h-screen flex flex-col justify-between transition-colors duration-300 ${darkMode
+      ? 'bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900'
+      : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50'
+      }`}>
       {/* Header con navegación y botón de tema */}
       <header className="w-full flex justify-between items-center p-4 md:p-6">
         {/* Botón de cambio de tema */}
-        <button 
+        <button
           onClick={toggleDarkMode}
           className="p-2 rounded-full bg-opacity-20 backdrop-blur-sm transition-colors hover:bg-opacity-30"
           aria-label={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
@@ -68,18 +67,18 @@ const LoginPage = () => {
           </Link>
         </div>
       </header>
-      
+
       {/* Contenedor principal - Centrado vertical y horizontal */}
       <main className="flex-grow flex items-center justify-center w-full px-4 py-6 md:py-8">
         <div className={`w-full max-w-md p-4 sm:p-6 md:p-8 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-2xl ${darkMode ? 'border border-gray-700' : ''}`}>
           <div className="text-center">
             {/* Logo/Icono */}
-            <div className={`mx-auto h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center rounded-full ${darkMode ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600' : 'bg-gradient-to-r from-indigo-500 to-purple-600'} mb-4 sm:mb-6`}>
+            <div className={`mx-auto h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center rounded-full ${themeColors.gradient} mb-4 sm:mb-6`}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 sm:h-8 sm:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            
+
             {/* Títulos */}
             <h2 className={`text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               Bienvenido de nuevo
@@ -88,7 +87,7 @@ const LoginPage = () => {
               Ingresa tus credenciales para acceder a tu cuenta
             </p>
           </div>
-          
+
           {/* Mensaje de error */}
           {error && (
             <div className={`mb-4 sm:mb-6 ${darkMode ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-500'} border-l-4 p-3 sm:p-4 rounded-md`}>
@@ -106,7 +105,7 @@ const LoginPage = () => {
               </div>
             </div>
           )}
-          
+
           {/* Formulario */}
           <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-3 sm:space-y-4">
@@ -128,25 +127,24 @@ const LoginPage = () => {
                     type="email"
                     autoComplete="email"
                     required
-                    className={`pl-10 sm:pl-12 w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 transition-all duration-200 text-sm ${
-                      darkMode 
-                        ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-transparent'
-                        : 'border-gray-200 bg-gray-50 focus:bg-white text-gray-900 focus:ring-indigo-500 focus:border-transparent'
-                    }`}
+                    className={`pl-10 sm:pl-12 w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 transition-all duration-200 text-sm ${darkMode
+                      ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-transparent'
+                      : 'border-gray-200 bg-gray-50 focus:bg-white text-gray-900 focus:ring-indigo-500 focus:border-transparent'
+                      }`}
                     placeholder="tu@correo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
-              
+
               {/* Campo de Contraseña */}
               <div>
                 <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between mb-1">
                   <label htmlFor="password" className={`block text-xs sm:text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1 xs:mb-0`}>
                     Contraseña
                   </label>
-                  
+
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
@@ -160,33 +158,29 @@ const LoginPage = () => {
                     type="password"
                     autoComplete="current-password"
                     required
-                    className={`pl-10 sm:pl-12 w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 transition-all duration-200 text-sm ${
-                      darkMode 
-                        ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-transparent' 
-                        : 'border-gray-200 bg-gray-50 focus:bg-white text-gray-900 focus:ring-indigo-500 focus:border-transparent'
-                    }`}
+                    className={`pl-10 sm:pl-12 w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 transition-all duration-200 text-sm ${darkMode
+                      ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-transparent'
+                      : 'border-gray-200 bg-gray-50 focus:bg-white text-gray-900 focus:ring-indigo-500 focus:border-transparent'
+                      }`}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                  
+
                 </div>
                 <Link to="/forgot-password" className={`text-xs ${darkMode ? 'text-violet-400 hover:text-violet-300' : 'text-indigo-600 hover:text-indigo-800'} transition-colors duration-300`}>
-                    ¿Olvidaste tu contraseña?
-                  </Link>
+                  ¿Olvidaste tu contraseña?
+                </Link>
               </div>
             </div>
-            
+
             {/* Botón de Login */}
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent rounded-lg shadow-sm text-xs sm:text-sm font-medium text-white transition-all duration-300 transform hover:translate-y-[-1px] disabled:opacity-70 disabled:cursor-not-allowed ${
-                  darkMode 
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 focus:ring-offset-gray-800'
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                }`}
+                className={`w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent rounded-lg shadow-sm text-xs sm:text-sm font-medium text-white transition-all duration-300 transform hover:translate-y-[-1px] disabled:opacity-70 disabled:cursor-not-allowed ${`bg-gradient-to-r ${themeColors.primary} ${themeColors.hover} focus:ring-2 focus:ring-offset-2 focus:${themeColors.ring} ${darkMode ? 'focus:ring-offset-gray-800' : ''}`
+                  }`}
               >
                 {isLoading ? (
                   <span className="flex items-center">
@@ -199,7 +193,7 @@ const LoginPage = () => {
                 ) : 'Iniciar sesión'}
               </button>
             </div>
-            
+
             {/* Separador */}
             <div className="relative my-4 sm:my-6">
               <div className="absolute inset-0 flex items-center">
@@ -209,16 +203,15 @@ const LoginPage = () => {
                 <span className={`px-2 ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'}`}>O continúa con</span>
               </div>
             </div>
-            
+
             {/* Botones de redes sociales */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                className={`w-full flex justify-center items-center px-3 sm:px-4 py-2 border rounded-lg shadow-sm text-xs sm:text-sm font-medium transition-colors duration-300 ${
-                  darkMode 
-                    ? 'border-gray-600 bg-gray-700 text-gray-200 hover:bg-gray-600' 
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`w-full flex justify-center items-center px-3 sm:px-4 py-2 border rounded-lg shadow-sm text-xs sm:text-sm font-medium transition-colors duration-300 ${darkMode
+                  ? 'border-gray-600 bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-2" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
                   <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -232,30 +225,29 @@ const LoginPage = () => {
               </button>
               <button
                 type="button"
-                className={`w-full flex justify-center items-center px-3 sm:px-4 py-2 border rounded-lg shadow-sm text-xs sm:text-sm font-medium transition-colors duration-300 ${
-                  darkMode 
-                    ? 'border-gray-600 bg-gray-700 text-gray-200 hover:bg-gray-600' 
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`w-full flex justify-center items-center px-3 sm:px-4 py-2 border rounded-lg shadow-sm text-xs sm:text-sm font-medium transition-colors duration-300 ${darkMode
+                  ? 'border-gray-600 bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                 </svg>
                 GitHub
               </button>
             </div>
-            
+
             {/* Footer con link de registro */}
             <div className={`text-center text-xs sm:text-sm mt-4 sm:mt-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               ¿No tienes cuenta?{' '}
-              <Link to="/register" className={`font-medium ${darkMode ? 'text-violet-400 hover:text-violet-300' : 'text-indigo-600 hover:text-indigo-800'} transition-colors duration-300`}>
+              <Link to="/register" className={`font-medium ${themeColors.secondary} transition-colors duration-300`}>
                 Regístrate ahora
               </Link>
             </div>
           </form>
         </div>
       </main>
-      
+
       {/* Footer con copyright */}
       <footer className="w-full p-4">
         <p className={`text-center text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
