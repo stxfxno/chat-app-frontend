@@ -1,9 +1,9 @@
-// Actualización para src/store/chatStore.ts
+// src/store/chatStore.ts
 
 import { create } from 'zustand';
-import axios from 'axios';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
+import api from '../services/api'; // Importar el servicio API en lugar de axios
 
 interface Contact {
   id: string;
@@ -42,7 +42,7 @@ interface ChatState {
   addMessageOptimistically: (message: Message) => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL;
+//const API_URL = import.meta.env.VITE_API_URL;
 
 export const useChatStore = create<ChatState>((set, get) => ({
   contacts: [],
@@ -53,6 +53,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentUser: null,
   activeConversationId: null,
   onlineUsers: {},
+
+  // Actualización para la función setActiveContact en chatStore.ts
 
   setActiveContact: async (contact: Contact) => {
     // Primero, limpiar inmediatamente los mensajes y establecer el nuevo contacto activo
@@ -75,33 +77,90 @@ export const useChatStore = create<ChatState>((set, get) => ({
       
       // 2. Obtener o crear conversación con una pequeña pausa para asegurar la transición visual limpia
       setTimeout(async () => {
-        try {
-          const API_URL = import.meta.env.VITE_API_URL;
-          const response = await axios.get(`${API_URL}/conversations/between/${currentUser.id}/${contact.id}`);
-          
-          // Verificar que el contacto activo no haya cambiado durante la petición
-          if (get().activeContact?.id !== contact.id) {
-            console.log("Contact changed during conversation fetch, aborting");
-            return;
+        let retryCount = 0;
+        const maxRetries = 2;
+        
+        const attemptGetConversation = async () => {
+          try {
+            // Verificar que todavía estamos interesados en esta conversación
+            if (get().activeContact?.id !== contact.id) {
+              console.log("Contact changed before fetch, aborting");
+              return;
+            }
+            
+            console.log(`Intentando obtener conversación entre ${currentUser.id} y ${contact.id}`);
+            const response = await api.get(`/conversations/between/${currentUser.id}/${contact.id}`);
+            
+            // Verificar que el contacto activo no haya cambiado durante la petición
+            if (get().activeContact?.id !== contact.id) {
+              console.log("Contact changed during conversation fetch, aborting");
+              return;
+            }
+            
+            // Extraer ID de conversación de la respuesta
+            const conversationData = response.data.data || response.data;
+            const conversationId = conversationData.id;
+            
+            console.log("Conversation obtained/created:", conversationId);
+            
+            // 3. Establecer conversación activa
+            set({ activeConversationId: conversationId });
+            
+            // 4. Cargar mensajes para esta conversación
+            if (conversationId) {
+              await get().loadMessages(conversationId, true);
+            }
+          } catch (error: any) {
+            // Registrar información detallada del error
+            console.error("Error getting/creating conversation:", error);
+            
+            if (error.response) {
+              console.error("Error response data:", error.response.data);
+              console.error("Error response status:", error.response.status);
+              console.error("Error response headers:", error.response.headers);
+            }
+            
+            // Si es un error 500 y aún no hemos alcanzado el máximo de reintentos, intentar de nuevo
+            if (error.response && error.response.status === 500 && retryCount < maxRetries) {
+              retryCount++;
+              console.log(`Reintentando obtener conversación (intento ${retryCount} de ${maxRetries})...`);
+              // Esperar antes de reintentar (aumentando el tiempo con cada intento)
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+              return attemptGetConversation();
+            }
+            
+            // Si llegamos aquí, o no es un error 500 o ya agotamos los reintentos
+            // Crear una conversación nueva si es un error específico que sugiere que no existe
+            if (error.response && (error.response.status === 404 || error.response.status === 500)) {
+              try {
+                console.log("Intentando crear una nueva conversación...");
+                const createResponse = await api.post(`/conversations`, {
+                  participant_ids: [currentUser.id, contact.id]
+                });
+                
+                const newConversationId = createResponse.data.id || createResponse.data.data?.id;
+                console.log("Nueva conversación creada:", newConversationId);
+                
+                if (newConversationId) {
+                  set({ activeConversationId: newConversationId });
+                  await get().loadMessages(newConversationId, true);
+                  return;
+                }
+              } catch (createError) {
+                console.error("Error creating new conversation:", createError);
+              }
+            }
+            
+            // Si todo falla, al menos dejamos de mostrar el spinner
+            set({ isLoading: false, isInitialLoad: false });
+            
+            // Podríamos mostrar un mensaje de error al usuario aquí
           }
-          
-          // Extraer ID de conversación de la respuesta
-          const conversationData = response.data.data || response.data;
-          const conversationId = conversationData.id;
-          
-          console.log("Conversation obtained/created:", conversationId);
-          
-          // 3. Establecer conversación activa
-          set({ activeConversationId: conversationId });
-          
-          // 4. Cargar mensajes para esta conversación
-          if (conversationId) {
-            await get().loadMessages(conversationId, true);
-          }
-        } catch (error) {
-          console.error("Error getting/creating conversation:", error);
-          set({ isLoading: false, isInitialLoad: false });
-        }
+        };
+        
+        // Iniciar el proceso
+        await attemptGetConversation();
+        
       }, 50); // Pequeña pausa para asegurar que la UI se actualice primero
     } catch (error) {
       console.error("General error setting up conversation:", error);
@@ -113,7 +172,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isLoading: true });
     try {
       // 1. Cargar la lista básica de contactos
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await api.get(`/users`);
       
       const contactsArray = response.data.data || [];
       
@@ -135,8 +194,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         filteredContacts.map(async (contact: Contact) => {
           try {
             // Buscar conversación entre usuarios
-            const conversationResponse = await axios.get(
-              `${API_URL}/conversations/between/${currentUserId}/${contact.id}`
+            const conversationResponse = await api.get(
+              `/conversations/between/${currentUserId}/${contact.id}`
             );
             
             const conversationData = conversationResponse.data.data || conversationResponse.data;
@@ -144,8 +203,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             
             if (conversationId) {
               // Obtener último mensaje de la conversación
-              const messagesResponse = await axios.get(
-                `${API_URL}/messages/conversation/${conversationId}?page=1&limit=1`
+              const messagesResponse = await api.get(
+                `/messages/conversation/${conversationId}?page=1&limit=1`
               );
               
               const messagesData = messagesResponse.data?.data?.messages || [];
@@ -183,7 +242,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadContacts: async () => {
     set({ isLoading: true });
     try {
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await api.get(`/users`);
       
       const contactsArray = response.data.data || [];
       
@@ -215,7 +274,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   
     set({ isLoading: true });
     try {
-      const response = await axios.get(`${API_URL}/users/search?term=${encodeURIComponent(term)}`);
+      const response = await api.get(`/users/search?term=${encodeURIComponent(term)}`);
       const contactsArray = response.data.data || [];
       
       // Get current user ID
@@ -255,7 +314,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
     
     try {
-      const response = await axios.get(`${API_URL}/messages/conversation/${conversationId}?page=1&limit=50`);
+      const response = await api.get(`/messages/conversation/${conversationId}?page=1&limit=50`);
       
       // Double-check that the active contact hasn't changed during the request
       if (activeContactId !== get().activeContact?.id) {
@@ -306,7 +365,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!conversationId) {
       try {
         console.log("No active conversation, creating a new one...");
-        const response = await axios.post(`${API_URL}/conversations`, {
+        const response = await api.post(`/conversations`, {
           participant_ids: [currentUser!.id, activeContact.id]
         });
         
@@ -343,7 +402,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     
     try {
       console.log("Sending message to conversation:", conversationId);
-      await axios.post(`${API_URL}/messages`, {
+      await api.post(`/messages`, {
         conversation_id: conversationId,
         sender_id: currentUser.id,
         content: content,
@@ -368,8 +427,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // En este caso, simplemente recargamos los mensajes para asegurar consistencia
       get().loadMessages(conversationId, false);
     }
-
-    
   },
 
   markMessagesAsRead: async () => {
@@ -380,7 +437,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
     
     try {
-      await axios.patch(`${API_URL}/messages/${currentUser.id}/read`);
+      await api.patch(`/messages/${currentUser.id}/read`);
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }

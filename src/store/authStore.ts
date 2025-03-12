@@ -1,9 +1,8 @@
-// Actualización para src/store/authStore.ts
-
+// src/store/authStore.ts
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import axios from 'axios';
+import api from '../services/api';
 
 // Tu tipo User
 interface User {
@@ -52,17 +51,39 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   
   signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) throw error;
-    set({ user: mapSupabaseUser(data.user) });
+    try {
+      // 1. Autenticación usando Supabase (mantener para compatibilidad)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      // 2. Obtener token mediante API personalizada
+      // Nota: Asume que tienes un endpoint que devuelve token
+      const response = await api.post('/auth/login', { 
+        email, 
+        password 
+      });
+      
+      // 3. Guardar token en localStorage
+      const { session } = response.data.data;
+      localStorage.setItem('authToken', session.access_token);
+      
+      // 4. Configurar headers por defecto para todas las solicitudes
+      api.defaults.headers.common['Authorization'] = `Bearer ${session.access_token}`;
+      
+      set({ user: mapSupabaseUser(data.user) });
+    } catch (error) {
+      console.error('Error de inicio de sesión:', error);
+      throw error;
+    }
   },
   
   signUp: async (email, password, fullName, phoneNumber) => {
     try {
+      // 1. Registro usando Supabase (mantener para compatibilidad)
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -79,8 +100,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw error;
       }
       
+      // También podrías llamar a tu API de registro personalizada aquí
+      
       console.log("Registro exitoso");
-      // Opcional: navegar a la página de login o mostrar mensaje de éxito
     } catch (err) {
       console.error("Error en registro:", err);
       throw err;
@@ -88,23 +110,55 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   
   signOut: async () => {
+    // 1. Cerrar sesión en Supabase
     await supabase.auth.signOut();
+    
+    // 2. Limpiar el token almacenado
+    localStorage.removeItem('authToken');
+    
+    // 3. Eliminar el encabezado de autenticación
+    delete api.defaults.headers.common['Authorization'];
+    
     set({ user: null });
   },
   
   checkAuth: async () => {
     set({ isLoading: true });
-    const { data } = await supabase.auth.getSession();
-    set({ 
-      user: mapSupabaseUser(data.session?.user || null),
-      isLoading: false 
-    });
+    
+    try {
+      // 1. Verificar si hay token almacenado
+      const token = localStorage.getItem('authToken');
+      
+      if (token) {
+        // Configurar el token en el cliente API
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Opcional: Verificar validez del token con backend
+        // const response = await api.get('/auth/verify');
+        // const userData = response.data.data;
+        
+        // Por ahora seguimos usando Supabase para obtener datos de usuario
+        const { data } = await supabase.auth.getSession();
+        set({ 
+          user: mapSupabaseUser(data.session?.user || null),
+          isLoading: false 
+        });
+      } else {
+        // Sin token, limpiar usuario
+        set({ user: null, isLoading: false });
+      }
+    } catch (error) {
+      console.error('Error verificando autenticación:', error);
+      // En caso de error, limpiar usuario y token
+      localStorage.removeItem('authToken');
+      set({ user: null, isLoading: false });
+    }
   },
   
   updateProfile: async (userId, updateProfileDto) => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL;
-      const response = await axios.put(`${API_URL}/users/${userId}/profile`, updateProfileDto);
+      // Usar la API con el token incluido automáticamente por el interceptor
+      const response = await api.put(`/users/${userId}/profile`, updateProfileDto);
       
       if (response.data) {
         // Actualizar también los metadatos de supabase si es necesario
