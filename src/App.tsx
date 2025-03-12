@@ -33,28 +33,33 @@ function App() {
   const checkAuth = useAuthStore(state => state.checkAuth);
   const setCurrentUser = useChatStore(state => state.setCurrentUser);
   
-  useEffect(() => {
-    checkAuth();
+  // Cerca de la línea 47, en useEffect del App
+useEffect(() => {
+  checkAuth();
+  
+  const checkAndSyncUser = async () => {
+    console.log("Ejecutando checkAndSyncUser...");
+    const authUser = useAuthStore.getState().user;
     
-    const checkAndSyncUser = async () => {
-      const authUser = useAuthStore.getState().user;
-      
-      if (authUser) {
-        console.log("Usuario encontrado en AuthStore:", authUser);
-        // Usar aserción de tipos
-        setCurrentUser(authUser as unknown as SupabaseUser);
+    if (authUser) {
+      console.log("Usuario encontrado en AuthStore:", authUser);
+      // Usar aserción de tipos
+      setCurrentUser(authUser as unknown as SupabaseUser);
+    } else {
+      console.log("Verificando sesión con Supabase...");
+      const { data } = await supabase.auth.getSession();
+      console.log("Datos de sesión:", data);
+      if (data.session?.user) {
+        console.log("Usuario recuperado de sesión Supabase:", data.session.user);
+        setCurrentUser(data.session.user);
       } else {
-        console.log("Verificando sesión con Supabase...");
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          console.log("Usuario recuperado de sesión Supabase:", data.session.user);
-          setCurrentUser(data.session.user);
-        }
+        console.log("No se encontró usuario en sesión");
       }
-    };
-    
-    checkAndSyncUser();
-  }, [checkAuth, setCurrentUser]);
+    }
+  };
+  
+  checkAndSyncUser();
+}, [checkAuth, setCurrentUser]);
   
   return (
     <ThemeProvider>

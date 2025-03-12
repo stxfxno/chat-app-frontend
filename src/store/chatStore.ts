@@ -263,28 +263,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
   
   loadContacts: async () => {
     set({ isLoading: true });
+    console.log("Iniciando carga de contactos...");
     try {
+      console.log("Haciendo solicitud a /users");
       const response = await api.get(`/users`);
+      console.log("Respuesta obtenida:", response.data);
       
       const contactsArray = response.data.data || [];
+      console.log("Contactos sin filtrar:", contactsArray);
       
       // Get current user ID
       const currentUser = get().currentUser;
       let currentUserId: string | undefined = currentUser?.id;
+      console.log("ID de usuario actual desde store:", currentUserId);
       
       // If no current user in store, try to get from session
       if (!currentUserId) {
+        console.log("Obteniendo sesión de Supabase...");
         const { data } = await supabase.auth.getSession();
         currentUserId = data.session?.user?.id;
+        console.log("ID de usuario obtenido de sesión:", currentUserId);
       }
       
       // Filter out current user from contacts list
       const filteredContacts = contactsArray.filter((contact: Contact) => contact.id !== currentUserId);
       
-      console.log("Processed contacts:", filteredContacts);
+      console.log("Contactos filtrados (sin el usuario actual):", filteredContacts);
       set({ contacts: filteredContacts, isLoading: false });
     } catch (error) {
       console.error('Error loading contacts:', error);
+      console.log("Tipo de error:", typeof error);
+      if (error instanceof Error) {
+        console.log("Mensaje de error:", error.message);
+      }
+      
+      // Intentar obtener más información sobre el error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        console.log("Status del error:", axiosError.response?.status);
+        console.log("Datos del error:", axiosError.response?.data);
+      }
+      
       set({ contacts: [], isLoading: false });
     }
   },

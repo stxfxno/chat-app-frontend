@@ -136,13 +136,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       // 1. Verificar si hay token almacenado
       const token = localStorage.getItem('authToken');
+    console.log("Token en localStorage:", token ? token.substring(0, 10) + "..." : "No hay token");
+    
+    if (token) {
+      // Configurar el token en el cliente API
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      if (token) {
-        // Configurar el token en el cliente API
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Intentar obtener la sesión actual usando el token existente
-        const { data, error } = await supabase.auth.getSession();
+      // Intentar obtener la sesión actual usando el token existente
+      const { data, error } = await supabase.auth.getSession();
+      console.log("Sesión de Supabase:", data.session ? "Válida" : "No hay sesión", error);
         
         if (error) {
           console.error('Error verificando sesión:', error);

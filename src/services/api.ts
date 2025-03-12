@@ -10,6 +10,7 @@ const api = axios.create({
 });
 
 // Interceptor para incluir el token en cada solicitud
+// Cerca de la línea 20, en el interceptor de solicitud
 api.interceptors.request.use(async config => {
   // Primero intentamos obtener el token almacenado
   let token = localStorage.getItem('authToken');
@@ -31,8 +32,17 @@ api.interceptors.request.use(async config => {
   }
   
   // Añadir debug para ver los headers que se están enviando
-  console.log('Request headers:', config.headers);
+  console.log(`Request a ${config.url}:`, {
+    headers: config.headers,
+    hasToken: !!config.headers.Authorization,
+    method: config.method
+  });
   
+  if (token) {
+    console.log('🔑 Token enviado en la solicitud:', token.substring(0, 15) + '...');
+  } else {
+    console.warn('⚠️ No hay token disponible para la solicitud');
+  }
   return config;
 }, error => {
   return Promise.reject(error);
