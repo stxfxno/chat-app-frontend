@@ -153,7 +153,7 @@ const MessageInput = () => {
             >
               <EmojiPicker 
                 onEmojiClick={onEmojiClick} 
-                theme={darkMode ? 'dark' : 'light'}
+                theme={darkMode ? 'dark' : 'light' as any}
                 searchPlaceHolder="Buscar emoji..."
                 width={300}
                 height={400}
