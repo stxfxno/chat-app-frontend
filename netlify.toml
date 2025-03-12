@@ -5,8 +5,8 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Deshabilitar el plugin de Next.js
-[plugins]
-  package = "@netlify/plugin-nextjs"
+# Configuración correcta para plugins
+[[plugins]]
+package = "netlify-plugin-nextjs"
   [plugins.inputs]
-    enable = false
+  enable = false
