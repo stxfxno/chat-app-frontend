@@ -292,8 +292,8 @@ const ProfilePage = () => {
                 }`}
               />
             </div>
-            
-            {/* Email */}
+            {/* Número de teléfono 
+
             <div>
               <label 
                 htmlFor="email" 
@@ -316,6 +316,7 @@ const ProfilePage = () => {
                 }`}
               />
             </div>
+            */}
             
             {/* URL del avatar */}
             <div>
