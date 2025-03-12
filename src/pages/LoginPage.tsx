@@ -10,8 +10,8 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Usa el contexto de tema en lugar de estado local
-  const { darkMode, toggleDarkMode, themeColors, colorScheme } = useTheme();
-
+  const { darkMode, toggleDarkMode, themeColors} = useTheme();
+//colorScheme
   const navigate = useNavigate();
   const signIn = useAuthStore(state => state.signIn);
 

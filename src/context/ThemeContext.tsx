@@ -2,7 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 // Define los tipos de temas disponibles
-type ThemeType = 'light' | 'dark';
+//type ThemeType = 'light' | 'dark';
 type ColorScheme = 'purple' | 'blue' | 'green' | 'amber';
 
 type ThemeContextType = {

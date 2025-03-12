@@ -14,8 +14,8 @@ const RegisterPage = () => {
   const [phoneError, setPhoneError] = useState('');
 
   // Usa el contexto de tema en lugar de estado local
-  const { darkMode, toggleDarkMode, themeColors, colorScheme } = useTheme();
-
+  const { darkMode, toggleDarkMode, themeColors} = useTheme();
+//colorScheme
 
   const navigate = useNavigate();
   const signUp = useAuthStore(state => state.signUp);

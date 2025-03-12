@@ -392,8 +392,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [...state.messages, message]
     }));
   },
-  
-  sendMessage: async (receiverId: string, content: string, imageUrl?: string) => {
+  //receiverId: string, 
+  sendMessage: async (content: string, imageUrl?: string) => {
     const { activeConversationId, currentUser, activeContact } = get();
     
     if (!activeContact) {
