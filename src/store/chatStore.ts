@@ -56,6 +56,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Actualización para la función setActiveContact en chatStore.ts
 
+  // Función setActiveContact mejorada para src/store/chatStore.ts
+
   setActiveContact: async (contact: Contact) => {
     // Primero, limpiar inmediatamente los mensajes y establecer el nuevo contacto activo
     set({ 
@@ -71,97 +73,117 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const currentUser = get().currentUser;
       if (!currentUser) {
         console.error("No current user available");
+        
+        // Intentar obtener el usuario actual de Supabase
+        const { data } = await supabase.auth.getSession();
+        const supabaseUser = data.session?.user;
+        
+        if (!supabaseUser) {
+          console.error("No se pudo obtener el usuario de Supabase");
+          set({ isLoading: false, isInitialLoad: false });
+          return;
+        }
+        
+        // Establecer el usuario actual si lo encontramos
+        get().setCurrentUser(supabaseUser);
+      }
+      
+      // Verificar que tenemos un usuario válido
+      const user = get().currentUser || (await supabase.auth.getSession()).data.session?.user;
+      
+      if (!user) {
+        console.error("No se pudo obtener un usuario válido");
         set({ isLoading: false, isInitialLoad: false });
         return;
       }
       
-      // 2. Obtener o crear conversación con una pequeña pausa para asegurar la transición visual limpia
+      // 2. Intentar obtener o crear la conversación con una pequeña pausa
       setTimeout(async () => {
-        let retryCount = 0;
-        const maxRetries = 2;
+        if (get().activeContact?.id !== contact.id) {
+          console.log("Contact changed before fetch, aborting");
+          set({ isLoading: false, isInitialLoad: false });
+          return;
+        }
         
-        const attemptGetConversation = async () => {
-          try {
-            // Verificar que todavía estamos interesados en esta conversación
-            if (get().activeContact?.id !== contact.id) {
-              console.log("Contact changed before fetch, aborting");
-              return;
+        console.log(`Intentando obtener conversación entre ${user.id} y ${contact.id}`);
+        
+        try {
+          // Verificar que tenemos el token en localStorage
+          const token = localStorage.getItem('authToken');
+          if (!token) {
+            const sessionData = await supabase.auth.getSession();
+            const newToken = sessionData.data.session?.access_token;
+            
+            if (newToken) {
+              localStorage.setItem('authToken', newToken);
+              console.log("Token obtenido y almacenado de Supabase");
+            } else {
+              console.error("No se pudo obtener token de Supabase");
             }
-            
-            console.log(`Intentando obtener conversación entre ${currentUser.id} y ${contact.id}`);
-            const response = await api.get(`/conversations/between/${currentUser.id}/${contact.id}`);
-            
-            // Verificar que el contacto activo no haya cambiado durante la petición
-            if (get().activeContact?.id !== contact.id) {
-              console.log("Contact changed during conversation fetch, aborting");
-              return;
-            }
-            
-            // Extraer ID de conversación de la respuesta
-            const conversationData = response.data.data || response.data;
-            const conversationId = conversationData.id;
-            
-            console.log("Conversation obtained/created:", conversationId);
-            
-            // 3. Establecer conversación activa
-            set({ activeConversationId: conversationId });
-            
-            // 4. Cargar mensajes para esta conversación
-            if (conversationId) {
-              await get().loadMessages(conversationId, true);
-            }
-          } catch (error: any) {
-            // Registrar información detallada del error
-            console.error("Error getting/creating conversation:", error);
-            
-            if (error.response) {
-              console.error("Error response data:", error.response.data);
-              console.error("Error response status:", error.response.status);
-              console.error("Error response headers:", error.response.headers);
-            }
-            
-            // Si es un error 500 y aún no hemos alcanzado el máximo de reintentos, intentar de nuevo
-            if (error.response && error.response.status === 500 && retryCount < maxRetries) {
-              retryCount++;
-              console.log(`Reintentando obtener conversación (intento ${retryCount} de ${maxRetries})...`);
-              // Esperar antes de reintentar (aumentando el tiempo con cada intento)
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-              return attemptGetConversation();
-            }
-            
-            // Si llegamos aquí, o no es un error 500 o ya agotamos los reintentos
-            // Crear una conversación nueva si es un error específico que sugiere que no existe
-            if (error.response && (error.response.status === 404 || error.response.status === 500)) {
-              try {
-                console.log("Intentando crear una nueva conversación...");
-                const createResponse = await api.post(`/conversations`, {
-                  participant_ids: [currentUser.id, contact.id]
-                });
-                
-                const newConversationId = createResponse.data.id || createResponse.data.data?.id;
-                console.log("Nueva conversación creada:", newConversationId);
-                
-                if (newConversationId) {
-                  set({ activeConversationId: newConversationId });
-                  await get().loadMessages(newConversationId, true);
-                  return;
-                }
-              } catch (createError) {
-                console.error("Error creating new conversation:", createError);
-              }
-            }
-            
-            // Si todo falla, al menos dejamos de mostrar el spinner
-            set({ isLoading: false, isInitialLoad: false });
-            
-            // Podríamos mostrar un mensaje de error al usuario aquí
           }
-        };
-        
-        // Iniciar el proceso
-        await attemptGetConversation();
-        
-      }, 50); // Pequeña pausa para asegurar que la UI se actualice primero
+          
+          // Intentar obtener conversación existente
+          const response = await api.get(`/conversations/between/${user.id}/${contact.id}`);
+          
+          // Verificar que el contacto activo no cambió durante la petición
+          if (get().activeContact?.id !== contact.id) {
+            console.log("Contact changed during conversation fetch, aborting");
+            set({ isLoading: false, isInitialLoad: false });
+            return;
+          }
+          
+          // Extraer ID de conversación de la respuesta
+          const conversationData = response.data.data || response.data;
+          const conversationId = conversationData.id;
+          
+          console.log("Conversation obtained:", conversationId);
+          
+          // 3. Establecer conversación activa
+          set({ activeConversationId: conversationId });
+          
+          // 4. Cargar mensajes para esta conversación
+          if (conversationId) {
+            await get().loadMessages(conversationId, true);
+          }
+        } catch (error: any) {
+          console.error("Error getting conversation:", error);
+          
+          // Si es 404 o 500, intentamos crear una nueva conversación
+          if (error.response && (error.response.status === 404 || error.response.status === 500)) {
+            try {
+              console.log("Intentando crear una nueva conversación...");
+              
+              // Crear una nueva conversación
+              const createResponse = await api.post('/conversations', {
+                participant_ids: [user.id, contact.id]
+              });
+              
+              // Verificar si el contacto activo cambió
+              if (get().activeContact?.id !== contact.id) {
+                console.log("Contact changed during conversation creation, aborting");
+                set({ isLoading: false, isInitialLoad: false });
+                return;
+              }
+              
+              const newConversationId = createResponse.data?.id || createResponse.data?.data?.id;
+              console.log("Nueva conversación creada:", newConversationId);
+              
+              if (newConversationId) {
+                set({ activeConversationId: newConversationId });
+                await get().loadMessages(newConversationId, true);
+              } else {
+                console.error("No se pudo obtener ID de la nueva conversación");
+                set({ isLoading: false, isInitialLoad: false });
+              }
+            } catch (createError) {
+              console.error("Error creating new conversation:", createError);
+              set({ isLoading: false, isInitialLoad: false });
+            }
+          } else {
+            set({ isLoading: false, isInitialLoad: false });
+          }
+        }
+      }, 50);
     } catch (error) {
       console.error("General error setting up conversation:", error);
       set({ isLoading: false, isInitialLoad: false });
